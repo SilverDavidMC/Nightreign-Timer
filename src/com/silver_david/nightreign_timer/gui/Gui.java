@@ -2,9 +2,12 @@ package com.silver_david.nightreign_timer.gui;
 
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.Dimension;
 import java.awt.GraphicsEnvironment;
 import java.awt.MouseInfo;
 import java.awt.Point;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseAdapter;
@@ -15,6 +18,9 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import javax.swing.JButton;
@@ -27,10 +33,12 @@ import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JSlider;
 import javax.swing.JSpinner;
 import javax.swing.JTextField;
 import javax.swing.JTextPane;
 import javax.swing.SpinnerModel;
+import javax.swing.SwingConstants;
 import javax.swing.Timer;
 import javax.swing.UIManager;
 import javax.swing.event.ChangeEvent;
@@ -97,24 +105,53 @@ public class Gui
 		JPanel panel = new JPanel();
 		panel.setBackground(NightreignTimer.BG_COLOR);
 		panel.setLayout(null);
-		Gui gui = new Gui(panel, menuBar);
-		guiFrame.initGui(gui, frame.getWidth(), frame.getHeight(), frame.getWidth() / 2, frame.getHeight() / 2);
-		int margin = 10;
-		int maxWidth = 0;
-		int maxHeight = 0;
-		for (var comp : panel.getComponents())
+		BiConsumer<Gui, Dimension> initFunc = (gui, dimension) ->
 		{
-			int x = comp.getX(), y = comp.getY(), w = comp.getWidth(), h = comp.getHeight();
-			comp.setBounds(x + margin, y + margin, w, h);
-			maxWidth = Math.max(maxWidth, x + w);
-			maxHeight = Math.max(maxHeight, y + h);
-		}
-		frame.setResizable(false);
-		frame.setVisible(true);
-		panel.setSize(maxWidth + margin + 25, maxHeight + margin + 48 + (menuBar != null ? menuBar.getHeight() : 0));
-		frame.add(panel);
-		frame.setSize(panel.getWidth(), panel.getHeight());
+			int menuHeight = gui.getMenuHeight();
+			int width = dimension.width;
+			int height = dimension.height + menuHeight;
+			for (var c : panel.getComponents())
+				c.invalidate();
+			panel.removeAll();
+			for (var m : panel.getMouseListeners())
+				panel.removeMouseListener(m);
+			for (var t : gui.repaintTimers)
+				t.stop();
+			gui.repaintTimers.clear();
+			if (menuBar != null)
+			{
+				for (var c : menuBar.getComponents())
+					c.invalidate();
+				menuBar.removeAll();
+			}
 
+			int margin = 10, xOffset = 25, yOffset = 48;
+			int initWidth = width - margin - xOffset;
+			int initHeight = height - margin - yOffset;
+			guiFrame.initGui(gui, initWidth, initHeight - menuHeight * 2, initWidth / 2, initHeight / 2);
+			int maxWidth = 0;
+			int maxHeight = 0;
+			for (var comp : panel.getComponents())
+			{
+				int x = comp.getX(), y = comp.getY(), w = comp.getWidth(), h = comp.getHeight();
+				comp.setBounds(x + margin, y + margin, w, h);
+				maxWidth = Math.max(maxWidth, x + w);
+				maxHeight = Math.max(maxHeight, y + h);
+			}
+			panel.setSize(maxWidth + margin + xOffset, maxHeight + margin + yOffset);
+			if (menuBar != null)
+				menuBar.revalidate();
+
+			frame.toFront();
+			frame.requestFocus();
+		};
+
+		Gui gui = new Gui(panel, menuBar);
+		Dimension defaultSize = guiFrame.getDefaultSize();
+		if (defaultSize == null)
+			defaultSize = new Dimension(0, 0);
+		initFunc.accept(gui, defaultSize);
+		frame.setVisible(true);
 		frame.addWindowListener(new WindowAdapter()
 		{
 			@Override
@@ -123,50 +160,38 @@ public class Gui
 				guiFrame.onClose();
 			}
 		});
-		for (var component : gui.getComponents())
+		frame.addComponentListener(new ComponentAdapter()
 		{
-			if (component instanceof GuiEventListener listener)
+			@Override
+			public void componentResized(ComponentEvent e)
 			{
-				int x = component.getX(), y = component.getY();
-				int w = component.getWidth(), h = component.getHeight();
-
-				int repaintTime = listener.autoRepaintTimer();
-				if (repaintTime > -1)
-				{
-					Timer repaintTimer = new Timer(repaintTime, event ->
-					{
-						Point mousePos = getRelativeMousePos(component);
-						listener.refresh(mousePos.x, mousePos.y);
-						component.repaint();
-					});
-					repaintTimer.start();
-				}
-
-				panel.addMouseListener(new MouseAdapter()
-				{
-					@Override
-					public void mouseReleased(MouseEvent e)
-					{
-						int ex = e.getX(), ey = e.getY();
-						if (ex >= x && ex <= w + x && ey >= y && ey <= h + y)
-							listener.mouseClicked(ex - x, ey - y, e.getButton());
-					}
-				});
+				if (guiFrame.isResizable())
+					initFunc.accept(gui, e.getComponent().getSize());
 			}
-		}
-
+		});
+		frame.add(panel);
+		frame.setAlwaysOnTop(NightreignTimer.settings.pinToTop.get());
+		frame.setResizable(guiFrame.isResizable());
+		frame.setMinimumSize(new Dimension(panel.getWidth(), panel.getHeight() + gui.getMenuHeight() * 2));
+		panel.setMinimumSize(new Dimension(panel.getWidth(), panel.getHeight() + gui.getMenuHeight() * 2));
+		frame.setSize(panel.getWidth(), panel.getHeight() + gui.getMenuHeight() * 2);
 		Point launchPos = guiFrame.getLaunchPosition();
 		if (launchPos != null)
 			frame.setLocation(launchPos);
 
-		frame.setAlwaysOnTop(NightreignTimer.settings.pinToTop.get());
-		
 		return guiFrame;
 	}
-	
+
+	public int getMenuHeight()
+	{
+		return this.menuBar != null ? this.menuBar.getHeight() : 0;
+	}
+
 	public static Point getRelativeMousePos(Component component)
 	{
 		Point mousePos = MouseInfo.getPointerInfo().getLocation();
+		if (!component.isShowing())
+			return new Point(0, 0);
 		Point compPoint = component.getLocationOnScreen();
 		return new Point(mousePos.x - compPoint.x, mousePos.y - compPoint.y);
 	}
@@ -181,9 +206,40 @@ public class Gui
 		return this.panel.getComponents();
 	}
 
+	public List<Timer> repaintTimers = new ArrayList<>();
+
 	public <T extends Component> T add(T component)
 	{
 		this.panel.add(component);
+		if (component instanceof GuiEventListener listener)
+		{
+			int x = component.getX(), y = component.getY();
+			int w = component.getWidth(), h = component.getHeight();
+
+			int repaintTime = listener.autoRepaintTimer();
+			if (repaintTime > -1)
+			{
+				Timer repaintTimer = new Timer(repaintTime, event ->
+				{
+					Point mousePos = getRelativeMousePos(component);
+					listener.refresh(mousePos.x, mousePos.y);
+					component.repaint();
+				});
+				repaintTimer.start();
+				repaintTimers.add(repaintTimer);
+			}
+
+			panel.addMouseListener(new MouseAdapter()
+			{
+				@Override
+				public void mouseReleased(MouseEvent e)
+				{
+					int ex = e.getX(), ey = e.getY();
+					if (ex >= x && ex <= w + x && ey >= y && ey <= h + y)
+						listener.mouseClicked(ex - x, ey - y, e.getButton());
+				}
+			});
+		}
 		return component;
 	}
 
@@ -239,6 +295,23 @@ public class Gui
 				Object val = e.getWheelRotation() > 0 ? c.getPreviousValue() : c.getNextValue();
 				if (val != null)
 					c.setValue(val);
+			}
+		});
+		return add(c, x, y, width, height);
+	}
+
+	public JSlider slider(int min, int max, int value, int x, int y, int width, int height)
+	{
+		var c = new JSlider(SwingConstants.HORIZONTAL, min, max, value);
+		c.setMajorTickSpacing(10);
+		c.addMouseWheelListener(new MouseWheelListener()
+		{
+			@Override
+			public void mouseWheelMoved(MouseWheelEvent e)
+			{
+				if (!c.isEnabled())
+					return;
+				c.setValue(c.getValue() + (e.getWheelRotation() > 0 ? -1 : 1));
 			}
 		});
 		return add(c, x, y, width, height);

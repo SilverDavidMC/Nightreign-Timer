@@ -1,5 +1,6 @@
 package com.silver_david.nightreign_timer.gui;
 
+import java.awt.Dimension;
 import java.awt.Point;
 
 import javax.swing.JFrame;
@@ -16,7 +17,14 @@ public interface GuiFrame
 	void onClose();
 
 	Point getLaunchPosition();
+	
+	Dimension getDefaultSize();
 
+	default boolean isResizable()
+	{
+		return false;
+	}
+	
 	void initGui(Gui gui, int width, int height, int centerX, int centerY);
 
 	default Class<?> getGuiClass()

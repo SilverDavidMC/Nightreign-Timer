@@ -188,6 +188,15 @@ public class GuiGraphics
 		graphics.setColor(color);
 		graphics.fillRect(x + this.xOffset, y + this.yOffset, width, height);
 	}
+	
+	public void rect(Color color, int lineWidth, int x, int y, int width, int height)
+	{
+		fillRect(color, x, y, lineWidth, height);
+		fillRect(color, x + width - lineWidth, y, lineWidth, height);
+		int horizWidth = width - lineWidth * 2;
+		fillRect(color, x + lineWidth, y, horizWidth, lineWidth);
+		fillRect(color, x + lineWidth, y + height - lineWidth, horizWidth, lineWidth);
+	}
 
 	private static final Set<String> KNOWN_ERRORED_IMAGES = new HashSet<>();
 
@@ -318,7 +327,7 @@ public class GuiGraphics
 			Clip clip = AudioSystem.getClip();
 			clip.open(audioStream);
 			FloatControl gainControl = (FloatControl) clip.getControl(FloatControl.Type.MASTER_GAIN);
-			gainControl.setValue(-(50 - NightreignTimer.settings.volume.get()));
+			gainControl.setValue(-(50 - (NightreignTimer.settings.volume.get() / 2.0F)));
 			clip.start();
 			return true;
 		}

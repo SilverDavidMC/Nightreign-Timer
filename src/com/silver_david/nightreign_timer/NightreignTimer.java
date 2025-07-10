@@ -1,6 +1,7 @@
 package com.silver_david.nightreign_timer;
 
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.GraphicsEnvironment;
 import java.awt.Point;
 import java.awt.image.BufferedImage;
@@ -31,6 +32,7 @@ import com.silver_david.nightreign_timer.util.Util;
 
 public class NightreignTimer implements GuiFrame
 {
+	public static final String VERSION = "1.1.0";
 	public static NightreignTimer instance;
 	private static final List<JsonFile> CONFIG_FILES = new ArrayList<>();
 	public static Settings settings = Util.make(Settings::new, CONFIG_FILES::add);
@@ -44,20 +46,19 @@ public class NightreignTimer implements GuiFrame
 	public static void main(String[] args)
 	{
 		CONFIG_FILES.forEach(JsonFile::load);
+		settings.version.setToDefault();
 		instance = new NightreignTimer();
 		Gui.initFrame(instance);
 	}
 
 	final JFrame frame;
 	final JMenuBar menuBar;
-	final TimerPanel timerPanel;
 	public Map<Class<?>, GuiFrame> children = new HashMap<>();
 
 	NightreignTimer()
 	{
 		this.frame = new JFrame("Nightreign Timer");
 		this.menuBar = new JMenuBar();
-		this.timerPanel = new TimerPanel(0, 0, 400, 400);
 	}
 
 	/**
@@ -127,11 +128,23 @@ public class NightreignTimer implements GuiFrame
 		Point center = env.getCenterPoint();
 		return new Point(center.x - frame.getWidth() / 2, center.y - frame.getHeight() / 2);
 	}
+	
+	@Override
+	public Dimension getDefaultSize()
+	{
+		return new Dimension(450, 450);
+	}
 
+	@Override
+	public boolean isResizable()
+	{
+		return true;
+	}
+	
 	@Override
 	public void initGui(Gui gui, int width, int height, int centerX, int centerY)
 	{
-		gui.add(this.timerPanel);
+		gui.add(new TimerPanel(0, 0, width, height));
 
 		JMenu fileMenu = gui.menu("File");
 		fileMenu.add(gui.menuItem("Settings", () ->

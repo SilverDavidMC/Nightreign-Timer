@@ -39,7 +39,7 @@ public class TimerPanel extends JPanel implements GuiEventListener
 			{
 				day = detectDay();
 				if (day > 0 && NightreignTimer.settings.startDayOnImageDetection.get())
-					start();
+					start(true);
 			}
 			else
 			{
@@ -62,16 +62,16 @@ public class TimerPanel extends JPanel implements GuiEventListener
 		this.setBounds(x, y, width, height);
 
 		int centerX = x + width / 2;
-		int startButtonWidth = 200, startButtonHeight = 80;
+		int startButtonWidth = width / 2, startButtonHeight = 80;
 		buttons.add(new StartButton("Start", centerX - startButtonWidth / 2, height - startButtonHeight - 10, startButtonWidth, startButtonHeight));
 
-		if (NightreignTimer.settings.autoDetectDayStart.get())
+		if (NightreignTimer.settings.autoDetectDayStart.get() && !photoThread.isAlive())
 			photoThread.start();
 	}
 
-	public static void start()
+	public static void start(boolean wasAutomatic)
 	{
-		if (NightreignTimer.settings.showDebug.get())
+		if (wasAutomatic)
 			playWarningSound();
 		startTime = System.currentTimeMillis();
 		timerRunning = true;
@@ -276,13 +276,15 @@ public class TimerPanel extends JPanel implements GuiEventListener
 			if (TimerPanel.timerRunning)
 				TimerPanel.stop();
 			else
-				TimerPanel.start();
+				TimerPanel.start(false);
 		}
 
 		@Override
 		public void repaint(int mouseX, int mouseY, GuiGraphics g)
 		{
-			g.fillRect(this.isMouseOver(mouseX, mouseY) ? NightreignTimer.SELECTED_COLOR : NightreignTimer.UNSELECTED_COLOR, x, y, width, height);
+			boolean hovered = this.isMouseOver(mouseX, mouseY);
+			g.fillRect(hovered ? NightreignTimer.SELECTED_COLOR : NightreignTimer.UNSELECTED_COLOR, x, y, width, height);
+			g.rect(hovered ? new Color(150, 150, 200) : new Color(113, 113, 160), 3, x, y, width, height);
 			StringProperties props = g.string().centered().fontSize(40);
 			String text = TimerPanel.timerRunning ? "Stop" : "Start";
 			g.drawString(text, this.getCenter().x, this.getCenter().y + g.getHeight(text, props) / 3, props);

@@ -24,8 +24,11 @@ public class Settings implements JsonFile
 	private final Map<String, OptionInstance<?>> options = new LinkedHashMap<>();
 	public final Map<String, OptionInstance<?>> guiOptions = new LinkedHashMap<>();
 
+	// Used for caching data
+	public OptionInstance<String> version = create("version", false, "The version of the program (Do not change!)", NightreignTimer.VERSION);
+
 	// Visible in options menu
-	public OptionInstance<Integer> volume = create("volume", true, "The volume of the warning sound.", 35, 0, 51);
+	public OptionInstance<Integer> volume = create("volume", true, "The volume of the warning sound.", 70, 0, 101).testAction(TimerPanel::playWarningSound);
 	public OptionInstance<String> warningSoundFile = create("warning_sound_file", true, "The file location of the warning sound (must be a wav file).", "warning.wav");
 	public OptionInstance<Boolean> autoDetectDayStart = create("auto_detect_day_start", true, "Detect a day starting by reading the text on your screen. This will not work if you have the map open while the start of day text is trying to display.", true).onValueChange(b ->
 	{
@@ -44,9 +47,6 @@ public class Settings implements JsonFile
 	public OptionInstance<Boolean> startDayOnImageDetection = create("start_day_on_detection", true, "Start the day when the \"day x\" text is detected.", true);
 	public OptionInstance<Boolean> pinToTop = create("pin_to_top", true, "Keep the application pinned as the top window.", false).onValueChange(NightreignTimer::setAlwaysOnTop);
 	public OptionInstance<Boolean> showDebug = create("show_debug", true, "Show debug info.", false);
-
-	// Used for caching data
-	public OptionInstance<Integer> version = create("version", false, "The version of the program (Do not change!)", 1);
 
 	public <T> OptionInstance<T> create(String name, boolean guiVisible, String comment, Function<String, T> readFunc, Function<T, String> writeFunc, T defaultValue, List<T> possibleValues)
 	{
@@ -77,7 +77,7 @@ public class Settings implements JsonFile
 	{
 		return create(name, guiVisible, comment, Integer::valueOf, String::valueOf, defaultValue, IntStream.range(min, max).boxed().toList());
 	}
-	
+
 	public OptionInstance<Float> create(String name, boolean guiVisible, String comment, float defaultValue)
 	{
 		return create(name, guiVisible, comment, Float::valueOf, String::valueOf, defaultValue, null);
@@ -127,6 +127,7 @@ public class Settings implements JsonFile
 		final Value<T> value;
 		final Optional<List<T>> possibleValues;
 		Optional<Consumer<T>> onValueChange = Optional.empty();
+		Optional<Runnable> testAction = Optional.empty();
 
 		OptionInstance(String comment, Function<String, T> readFunc, Function<T, String> writeFunc, T defaultValue, Value<T> value, Optional<List<T>> possibleValues)
 		{
@@ -142,6 +143,17 @@ public class Settings implements JsonFile
 		{
 			this.onValueChange = Optional.ofNullable(valueChange);
 			return this;
+		}
+		
+		OptionInstance<T> testAction(Runnable test)
+		{
+			this.testAction = Optional.ofNullable(test);
+			return this;
+		}
+		
+		public Optional<Runnable> getTestAction()
+		{
+			return this.testAction;
 		}
 
 		@Override
@@ -166,6 +178,11 @@ public class Settings implements JsonFile
 			{
 				this.value.set(val, onValueChange);
 			}
+		}
+
+		public void setToDefault()
+		{
+			this.value.set(defaultValue, onValueChange);
 		}
 
 		public void load(String data)
