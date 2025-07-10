@@ -8,3 +8,5 @@ release/
 target/
 bin/
 .settings/
+.classpath
+.project
