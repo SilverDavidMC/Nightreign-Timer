@@ -71,8 +71,8 @@ public class TimerPanel extends JPanel implements GuiEventListener
 
 	public static void start()
 	{
-		if (NightreignTimer.settings.showDebug.get() || NightreignTimer.settings.playWarningSound.get())
-			playDingSound();
+		if (NightreignTimer.settings.showDebug.get())
+			playWarningSound();
 		startTime = System.currentTimeMillis();
 		timerRunning = true;
 	}
@@ -88,12 +88,6 @@ public class TimerPanel extends JPanel implements GuiEventListener
 		day = 0;
 		lastScreenshot = null;
 		detectedText = "";
-	}
-
-	public void toggleWarning()
-	{
-		NightreignTimer.settings.playWarningSound.set(!NightreignTimer.settings.playWarningSound.get());
-		;
 	}
 
 	public int getSeconds()
@@ -115,8 +109,8 @@ public class TimerPanel extends JPanel implements GuiEventListener
 		CircleState newState = CircleState.getCurrentState(seconds);
 		if (newState != state && newState != CircleState.NIGHT_BEGINS)
 		{
-			if (state.playWarningSound && NightreignTimer.settings.playWarningSound.get())
-				playDingSound();
+			if (state.playWarningSound)
+				playWarningSound();
 			state = newState;
 		}
 		if (seconds > this.getMaxSeconds())
@@ -170,9 +164,10 @@ public class TimerPanel extends JPanel implements GuiEventListener
 				b.onClick(x, y);
 	}
 
-	public static void playDingSound()
+	public static void playWarningSound()
 	{
-		GuiGraphics.playSound("ding_ding_ding");
+		if (NightreignTimer.settings.volume.get() > 0)
+			GuiGraphics.playSound(NightreignTimer.settings.warningSoundFile.get());
 	}
 
 	private static int detectDay()

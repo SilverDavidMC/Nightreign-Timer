@@ -15,6 +15,7 @@ import javax.imageio.ImageIO;
 import javax.swing.JFrame;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
+import javax.swing.JOptionPane;
 
 import org.bytedeco.javacpp.BytePointer;
 import org.bytedeco.javacpp.lept;
@@ -176,5 +177,10 @@ public class NightreignTimer implements GuiFrame
 			instance.children.forEach((c, g) -> g.getFrame().setAlwaysOnTop(alwaysOnTop));
 			instance.getFrame().setAlwaysOnTop(alwaysOnTop);
 		}
+	}
+	
+	public static void showError(Exception e)
+	{
+		JOptionPane.showMessageDialog(instance.frame, e, "Error", JOptionPane.ERROR_MESSAGE);
 	}
 }

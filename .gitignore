@@ -1,0 +1,8 @@
+# Ignore files created by running the program
+settings.json
+
+# Ignore release folder
+release/
+
+# The class output folder
+target/

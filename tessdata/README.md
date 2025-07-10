@@ -1,0 +1,2 @@
+# Tessdata
+Language datasets obtained from [tesseract-ocr](https://github.com/tesseract-ocr/tessdata) and handled through [JavaCPP Presets for Tesseract](https://github.com/bytedeco/javacpp-presets/tree/master/tesseract).

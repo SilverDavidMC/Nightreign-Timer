@@ -25,8 +25,8 @@ public class Settings implements JsonFile
 	public final Map<String, OptionInstance<?>> guiOptions = new LinkedHashMap<>();
 
 	// Visible in options menu
-	public OptionInstance<Boolean> playWarningSound = create("play_warning_sound", true, "Play a sound when a circle is closing soon.", true);
-	public OptionInstance<Integer> volume = create("volume", true, "The general sound volume.", 25, 0, 51);
+	public OptionInstance<Integer> volume = create("volume", true, "The volume of the warning sound.", 35, 0, 51);
+	public OptionInstance<String> warningSoundFile = create("warning_sound_file", true, "The file location of the warning sound (must be a wav file).", "warning.wav");
 	public OptionInstance<Boolean> autoDetectDayStart = create("auto_detect_day_start", true, "Detect a day starting by reading the text on your screen. This will not work if you have the map open while the start of day text is trying to display.", true).onValueChange(b ->
 	{
 		if (b && !TimerPanel.photoThread.isAlive())

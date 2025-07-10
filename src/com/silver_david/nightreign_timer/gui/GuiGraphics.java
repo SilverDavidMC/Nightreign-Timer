@@ -16,6 +16,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
@@ -25,7 +26,6 @@ import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.Clip;
 import javax.sound.sampled.FloatControl;
-import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.UnsupportedAudioFileException;
 
 import com.silver_david.nightreign_timer.NightreignTimer;
@@ -196,14 +196,14 @@ public class GuiGraphics
 		try
 		{
 			// Load from root directory
-			return loadImageInternal("src/resources/" + fileName, false);
+			return loadImageInternal(fileName, false);
 		}
 		catch (Exception e)
 		{
 			try
 			{
 				// Load from packaged jar
-				return loadImageInternal("/src/resources/" + fileName, true);
+				return loadImageInternal("/" + fileName, true);
 			}
 			catch (IllegalArgumentException e1)
 			{}
@@ -217,17 +217,15 @@ public class GuiGraphics
 		return MISSING_TEXTURE;
 	}
 
-	static final String PNG = "png", PNG_EXTENSION = "." + PNG;
+	public static BufferedImage loadSourceImage(String fileName)
+	{
+		return loadImage("src/resources/" + fileName);
+	}
 
 	private static BufferedImage loadImageInternal(String fileName, boolean packaged) throws IOException
 	{
-		int extensionIndex = fileName.lastIndexOf('.');
-		String extension = extensionIndex >= 0 ? fileName.substring(extensionIndex + 1) : "";
-		if (extension.isBlank())
-			fileName = fileName + PNG_EXTENSION;
-		else if (!extension.equals(PNG))
-			throw new IIOException(fileName + " is not a " + PNG);
-		
+		fileName = validateAndAppendExtension(fileName, "png", IllegalArgumentException::new);
+
 		BufferedImage image;
 		if (packaged)
 		{
@@ -257,9 +255,9 @@ public class GuiGraphics
 
 	public void drawImage(String image, int x, int y, int width, int height)
 	{
-		this.drawImage(loadImage(image), x, y, width, height);
+		this.drawImage(loadSourceImage(image), x, y, width, height);
 	}
-	
+
 	public void drawImage(BufferedImage image, int x, int y, int width, int height)
 	{
 		graphics.drawImage(image, x + this.xOffset, y + this.yOffset, width, height, null);
@@ -270,54 +268,90 @@ public class GuiGraphics
 		drawImage(image, x, y, this.width, this.height);
 	}
 
-	public static void playSound(String fileName)
+	static final String SOUND_FOLDER = "sounds/";
+
+	public static boolean playSound(String fileName)
+	{
+		if (playLocalSound(fileName))
+			return true;
+		return playSourceSound(fileName);
+	}
+
+	private static boolean playLocalSound(String fileName)
+	{
+		return _playSound(SOUND_FOLDER + fileName);
+	}
+
+	private static boolean playSourceSound(String fileName)
+	{
+		return _playSound("src/resources/" + SOUND_FOLDER + fileName);
+	}
+
+	private static boolean _playSound(String fileName)
 	{
 		try
 		{
 			// Load from root directory
-			playSoundInternal("src/resources/" + fileName, false);
+			if (playSoundInternal(fileName, false))
+				return true;
+			else
+			{
+				// Load from packaged jar
+				if (playSoundInternal("/" + fileName, true))
+					return true;
+			}
+		}
+		catch (UnsupportedAudioFileException e)
+		{
+			e.printStackTrace();
+		}
+		return false;
+	}
+
+	private static boolean playSoundInternal(String fileName, boolean packaged) throws UnsupportedAudioFileException
+	{
+		fileName = validateAndAppendExtension(fileName, "wav", UnsupportedAudioFileException::new);
+		try
+		{
+			AudioInputStream audioStream = loadSound(fileName, packaged);
+
+			Clip clip = AudioSystem.getClip();
+			clip.open(audioStream);
+			FloatControl gainControl = (FloatControl) clip.getControl(FloatControl.Type.MASTER_GAIN);
+			gainControl.setValue(-(50 - NightreignTimer.settings.volume.get()));
+			clip.start();
+			return true;
 		}
 		catch (Exception e)
 		{
-			e.printStackTrace();
-			try
-			{
-				// Load from packaged jar
-				playSoundInternal("/src/resources/" + fileName, true);
-			}
-			catch (Exception ex)
-			{
-				ex.printStackTrace();
-			}
 		}
+		return false;
 	}
 
-	static final String WAV = "wav", WAV_EXTENSION = "." + WAV;
-
-	private static void playSoundInternal(String fileName, boolean packaged) throws UnsupportedAudioFileException, IOException, LineUnavailableException
+	private static AudioInputStream loadSound(String fileName, boolean packaged) throws UnsupportedAudioFileException, IOException
 	{
-		int extensionIndex = fileName.lastIndexOf('.');
-		String extension = extensionIndex >= 0 ? fileName.substring(extensionIndex + 1) : "";
-		if (extension.isBlank())
-			fileName = fileName + WAV_EXTENSION;
-		else if (!extension.equals(WAV))
-			throw new UnsupportedAudioFileException(fileName + " is not a " + WAV);
+		fileName = validateAndAppendExtension(fileName, "wav", UnsupportedAudioFileException::new);
 
-		AudioInputStream audioStream;
 		if (packaged)
 		{
 			BufferedInputStream stream = new BufferedInputStream(GuiGraphics.class.getResourceAsStream(fileName));
-			audioStream = AudioSystem.getAudioInputStream(stream);
+			return AudioSystem.getAudioInputStream(stream);
 		}
 		else
 		{
-			audioStream = AudioSystem.getAudioInputStream(new File(fileName));
+			return AudioSystem.getAudioInputStream(new File(fileName));
 		}
-		Clip clip = AudioSystem.getClip();
-		clip.open(audioStream);
-		FloatControl gainControl = (FloatControl) clip.getControl(FloatControl.Type.MASTER_GAIN);
-		gainControl.setValue(-(50 - NightreignTimer.settings.volume.get()));
-		clip.start();
+	}
+
+	private static <T extends Exception> String validateAndAppendExtension(String fileName, String extension, Function<String, T> exception) throws T
+	{
+		int extensionIndex = fileName.lastIndexOf('.');
+		String ex = extensionIndex >= 0 ? fileName.substring(extensionIndex + 1) : "";
+		if (ex.isBlank())
+			fileName = fileName + "." + extension;
+		else if (!ex.equals(extension))
+			throw exception.apply(fileName + " is not a " + extension);
+		return fileName;
 	}
 
 	public Font getFont()

@@ -83,7 +83,7 @@ public class Gui
 		JFrame frame = guiFrame.getFrame();
 		JMenuBar menuBar = guiFrame.getMenuBar();
 
-		BufferedImage icon = GuiGraphics.loadImage("icon.png");
+		BufferedImage icon = GuiGraphics.loadSourceImage("icon.png");
 		frame.setIconImage(icon);
 
 		if (menuBar != null)
