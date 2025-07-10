@@ -4,5 +4,7 @@ settings.json
 # Ignore release folder
 release/
 
-# The class output folder
+# Eclipse Folders
 target/
+bin/
+.settings/
