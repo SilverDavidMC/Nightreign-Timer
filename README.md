@@ -17,8 +17,7 @@ Automatic starting is handled by taking a screenshot of the center of your scree
 ## Configuration
 <img src="screenshots/settings_screen.png" alt="Settings">
 
-- If a warning sound should play or not. The warning sound is the summoning bell sound effect, and it plays 20 seconds before a circle will close.
-- The volume of the warning sound (0-50).
+- The warning sound volume and file location.
 - If automatic starting should be enabled or not.
     - The monitor to watch can be any numeric ID. In general, 0 represents your main monitor.
     - The region of the monitor to watch. These are not pixel numbers, but rather relative percentage based numbers. So setting x to 0.50 would start the image capture exactly in the middle (horizontally) of your screen, and setting the width to 0.25 would capture 25% of the screen width going to the right of that. The order of values is x, y, width, height. The default values are based on a 16x9 monitor.
